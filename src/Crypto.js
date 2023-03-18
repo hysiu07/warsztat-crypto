@@ -8,11 +8,16 @@ class Crypto extends Component {
 		super(props);
 		this.state = {
 			cryptoList: [],
+			filteredCryptoList: [],
 		};
 	}
 
 	componentDidMount() {
 		this.getCryptoDate();
+		this.timerID = setInterval(() => this.getCryptoDate(), 5000);
+	}
+	componentWillUnmount() {
+		clearInterval(this.timerID);
 	}
 
 	getCryptoDate = () => {
@@ -22,12 +27,15 @@ class Crypto extends Component {
 			})
 			.then((res) => {
 				const tickers = res.data;
-				console.log(tickers);
 
 				this.setState((state) => {
 					let newCryptoList = [];
 
 					for (const [ticker, cryptoRate] of Object.entries(tickers)) {
+						let lastCryptoObj = state.cryptoList.find((cryptoObj) => {
+							return cryptoObj.currency === ticker;
+						});
+
 						let newCryptoObj = {
 							currency: ticker,
 							symbol: cryptoRate.symbol,
@@ -36,20 +44,54 @@ class Crypto extends Component {
 							lastRate: cryptoRate.last,
 						};
 
+						if (lastCryptoObj !== undefined) {
+							if (newCryptoObj.lastRate > lastCryptoObj.lastRate) {
+								newCryptoObj.cssClass = 'green';
+								newCryptoObj.htmlArray = String.fromCharCode(8593);
+							} else if (newCryptoObj.lastRate > lastCryptoObj.lastRate) {
+								newCryptoObj.cssClass = 'red';
+								newCryptoObj.htmlArray = String.fromCharCode(8595);
+							} else {
+								newCryptoObj.cssClass = 'blue';
+								newCryptoObj.htmlArray = String.fromCharCode(8596);
+							}
+						} else {
+							newCryptoObj.cssClass = 'blue';
+							newCryptoObj.htmlArray = String.fromCharCode(8596);
+						}
+
 						newCryptoList.push(newCryptoObj);
 					}
-					return ({
+					return {
 						cryptoList: newCryptoList,
-					});
+					};
 				});
-                console.log(this.state.cryptoList);
+				this.filterCryptoList()
 			});
 	};
+	filterCryptoList = () => {
+		this._inputFilter.value = this._inputFilter.value.trim().toUpperCase()
+
+		
+
+		this.setState((state)=>{
+
+
+			let newFilteredCryptoList = this.state.cryptoList.filter((cryptoObj)=> {
+				return(cryptoObj.currency.includes(this._inputFilter.value))
+			})
+			return({
+				filteredCryptoList: newFilteredCryptoList
+			})
+		})
+
+	}
 
 	render() {
 		return (
 			<div className='Crypto'>
-				<CryptoList cryptoList={this.state.cryptoList}/>
+				<input type="text" placeholder='Filter' ref={(element)=>{this._inputFilter = element}} onChange={this.filterCryptoList}/>
+				<CryptoList cryptoList={this.state.filteredCryptoList} />
 			</div>
 		);
 	}
